@@ -236,10 +236,10 @@ class FaceVerificationApp(QMainWindow):
         nav_header.setObjectName("navHeader")
         sidebar_layout.addWidget(nav_header)
 
-        self.btn_nav_verification = QPushButton("  🔍  Verification")
+        self.btn_nav_verification = QPushButton("Verification")
         self.btn_nav_verification.setObjectName("navBtnActive")
 
-        self.btn_nav_docs = QPushButton("  📖  Documentation")
+        self.btn_nav_docs = QPushButton("Documentation")
         self.btn_nav_docs.setObjectName("navBtn")
 
         for btn in [self.btn_nav_verification, self.btn_nav_docs]:
@@ -288,7 +288,7 @@ class FaceVerificationApp(QMainWindow):
         ws_title_box.addWidget(ws_title)
         ws_title_box.addWidget(ws_sub)
 
-        self.btn_select_folder = QPushButton("📁  Select Folder")
+        self.btn_select_folder = QPushButton("Select Folder")
         self.btn_select_folder.setObjectName("outlineBtn")
         self.btn_select_folder.clicked.connect(self.browse_file)
 
@@ -344,11 +344,11 @@ class FaceVerificationApp(QMainWindow):
         src_btn_row = QHBoxLayout()
         src_btn_row.setSpacing(10)
 
-        self.btn_replace = QPushButton("🔄  Replace")
+        self.btn_replace = QPushButton("Replace")
         self.btn_replace.setObjectName("outlineBtn")
         self.btn_replace.clicked.connect(self.browse_file)
 
-        self.btn_remove = QPushButton("🗑  Remove")
+        self.btn_remove = QPushButton("Remove")
         self.btn_remove.setObjectName("outlineBtn")
         self.btn_remove.clicked.connect(self.remove_image)
 
