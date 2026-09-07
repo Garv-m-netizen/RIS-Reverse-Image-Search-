@@ -1,10 +1,10 @@
-# 🏆 Face Verification Pipeline — AI & Sepolia Blockchain Desktop Utility
+#  Face Verification Pipeline — AI & Sepolia Blockchain Desktop Utility
 
 A modern, production-grade desktop application built with **PyQt5** featuring a clean macOS-style UI. It performs **AI face detection and 512-dim embedding extraction via InsightFace (`buffalo_l`)**, conducts **real reverse image web search via SerpAPI (Google Lens) & Catbox.moe**, and registers an immutable, tamper-proof audit record on the **Ethereum Sepolia Testnet** using a custom Solidity smart contract (`HashRegistry.sol`).
 
 ---
 
-## 🎨 UI & Features Overview
+##  UI & Features Overview
 
 - **macOS Desktop Utility Interface**: Modern card-based layout, sidebar navigation, confidence slider, clear execution logs, and identity match visualization.
 - **AI Face Feature Extraction**: InsightFace `buffalo_l` model generates 512-dimensional facial embeddings and 5-point facial landmark arrays with OpenCV fallback support.
@@ -14,7 +14,7 @@ A modern, production-grade desktop application built with **PyQt5** featuring a 
 
 ---
 
-## 📐 Project Architecture
+##  Project Architecture
 
 ```
 [ User Input Image (JPG/PNG) ]
@@ -40,7 +40,7 @@ A modern, production-grade desktop application built with **PyQt5** featuring a 
 
 ---
 
-## 📁 Repository Structure
+##  Repository Structure
 
 ```
 face-verification-pipeline/
@@ -58,7 +58,7 @@ face-verification-pipeline/
 
 ---
 
-## 🔑 STEP-BY-STEP SETUP GUIDE: How to Get All Required APIs
+##  STEP-BY-STEP SETUP GUIDE: How to Get All Required APIs
 
 Follow these simple steps to obtain your API keys and testnet ETH:
 
@@ -115,7 +115,7 @@ CONTRACT_ADDRESS=0xYourDeployedContractAddress
 
 ---
 
-## ⚙️ Installation & Execution
+##  Installation & Execution
 
 ### 1. Clone Repository & Setup Environment
 ```bash
@@ -147,7 +147,7 @@ python main.py
 
 ---
 
-## 🎬 Screen Recording Presentation Script (45 Seconds)
+##  Screen Recording Presentation Script (45 Seconds)
 
 | Timestamp | Action | Description |
 |---|---|---|
@@ -160,7 +160,7 @@ python main.py
 
 ---
 
-## 🛡️ Core Technologies & Specifications
+##  Core Technologies & Specifications
 
 - **PyQt5 Desktop Framework**: Native desktop interface with responsive sidebar and custom Qt stylesheets.
 - **InsightFace (`buffalo_l`)**: Deep learning facial recognition engine running locally on CPU/GPU.
