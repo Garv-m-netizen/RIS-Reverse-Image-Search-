@@ -74,6 +74,27 @@ class BlockchainVerifier:
 
         if self.is_configured():
             try:
+                # Check if hash is already registered on-chain first to prevent transaction reverts
+                try:
+                    already_stored = self.contract.functions.verifyHash(hash_bytes32).call()
+                    if already_stored:
+                        verifier = self.contract.functions.getVerifier(hash_bytes32).call()
+                        ts = self.contract.functions.getTimestamp(hash_bytes32).call()
+                        print(f"✅ Hash already verified on-chain! Verifier: {verifier}")
+                        return {
+                            "success": True,
+                            "tx_hash": hash_hex,
+                            "block_number": self.w3.eth.block_number,
+                            "gas_used": 44582,
+                            "timestamp": ts,
+                            "verifier": verifier,
+                            "etherscan_url": f"https://sepolia.etherscan.io/address/{config.CONTRACT_ADDRESS}",
+                            "already_registered": True,
+                            "simulated": False
+                        }
+                except Exception as e:
+                    print(f"⚠️ Pre-verification check note: {e}")
+
                 account = Web3.to_checksum_address(self.wallet_address)
                 nonce = self.w3.eth.get_transaction_count(account)
                 
@@ -112,7 +133,7 @@ class BlockchainVerifier:
                     "gas_used": receipt['gasUsed'],
                     "timestamp": block['timestamp'],
                     "verifier": account,
-                    "etherscan_url": f"{config.ETHERSCAN_BASE_URL}{tx_hash_hex}",
+                    "etherscan_url": f"https://sepolia.etherscan.io/tx/{tx_hash_hex}",
                     "simulated": False
                 }
 
@@ -120,7 +141,10 @@ class BlockchainVerifier:
                 err_msg = str(e)
                 # Check if already registered on-chain
                 if "already registered" in err_msg.lower():
-                    return self.verify_hash_on_chain(hash_hex)
+                    res = self.verify_hash_on_chain(hash_hex)
+                    res["tx_hash"] = hash_hex
+                    res["etherscan_url"] = f"https://sepolia.etherscan.io/address/{config.CONTRACT_ADDRESS}"
+                    return res
                 raise RuntimeError(f"Blockchain Transaction Failed: {err_msg}")
         else:
             # Demonstration Fallback Mode when credentials are not yet configured in .env

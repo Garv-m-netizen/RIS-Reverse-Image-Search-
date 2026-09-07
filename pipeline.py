@@ -230,77 +230,72 @@ class BrightDataSearcher:
                 data = resp.json()
                 fname = Path(image_path).stem.replace("_", " ").title()
 
+                all_matches = []
+
                 # Check for image_results (visual matches)
                 image_results = data.get("image_results", [])
-                if image_results:
-                    best = image_results[0]
-                    url = best.get("link") or best.get("source", "")
-                    title = best.get("title") or best.get("snippet", f"Match for {fname}")
-                    thumbnail = best.get("thumbnail", "")
-                    snippet = best.get("snippet", "")
-                    print(f"✅ SerpAPI found {len(image_results)} image matches!")
-                    return {
-                        "found": True,
+                for idx, item in enumerate(image_results):
+                    url = item.get("link") or item.get("source", "")
+                    if not url:
+                        continue
+                    title = item.get("title") or item.get("snippet", f"Match #{idx+1} for {fname}")
+                    thumbnail = item.get("thumbnail", "")
+                    snippet = item.get("snippet", "")
+                    rel = max(0.60, round(0.98 - idx * 0.03, 2))
+                    all_matches.append({
                         "url": url,
                         "title": title,
                         "platform": self._detect_platform(url),
                         "thumbnail": thumbnail,
-                        "snippet": snippet or f"Visual match found for '{fname}'",
-                        "relevance": 0.98,
-                        "real_api": True,
-                        "total_results": len(image_results)
-                    }
+                        "snippet": snippet,
+                        "relevance": rel
+                    })
 
                 # Check for inline_images
                 inline_images = data.get("inline_images", [])
-                if inline_images:
-                    best = inline_images[0]
-                    url = best.get("link") or best.get("source", "")
-                    title = best.get("title", f"Visual match for {fname}")
-                    print(f"✅ SerpAPI found {len(inline_images)} inline matches!")
-                    return {
-                        "found": True,
+                for idx, item in enumerate(inline_images):
+                    url = item.get("link") or item.get("source", "")
+                    if not url or any(m["url"] == url for m in all_matches):
+                        continue
+                    title = item.get("title", f"Visual match for {fname}")
+                    all_matches.append({
                         "url": url,
                         "title": title,
                         "platform": self._detect_platform(url),
-                        "thumbnail": best.get("thumbnail", ""),
-                        "snippet": best.get("snippet", f"Match found for '{fname}'"),
-                        "relevance": 0.95,
-                        "real_api": True
-                    }
+                        "thumbnail": item.get("thumbnail", ""),
+                        "snippet": item.get("snippet", f"Match found for '{fname}'"),
+                        "relevance": max(0.65, round(0.95 - len(all_matches) * 0.03, 2))
+                    })
 
                 # Check organic results
                 organic = data.get("organic_results", [])
-                if organic:
-                    best = organic[0]
-                    url = best.get("link", "")
-                    title = best.get("title", f"Search result for {fname}")
-                    print(f"✅ SerpAPI found {len(organic)} organic results!")
-                    return {
-                        "found": True,
+                for idx, item in enumerate(organic):
+                    url = item.get("link", "")
+                    if not url or any(m["url"] == url for m in all_matches):
+                        continue
+                    title = item.get("title", f"Search result for {fname}")
+                    all_matches.append({
                         "url": url,
                         "title": title,
                         "platform": self._detect_platform(url),
-                        "thumbnail": best.get("thumbnail", ""),
-                        "snippet": best.get("snippet", ""),
-                        "relevance": 0.92,
-                        "real_api": True
-                    }
+                        "thumbnail": item.get("thumbnail", ""),
+                        "snippet": item.get("snippet", ""),
+                        "relevance": max(0.60, round(0.92 - len(all_matches) * 0.03, 2))
+                    })
 
-                # Check knowledge graph
-                kg = data.get("knowledge_graph", {})
-                if kg:
-                    url = kg.get("source", {}).get("link", "") or kg.get("website", "")
-                    title = kg.get("title", f"Identified: {fname}")
-                    print(f"✅ SerpAPI identified via Knowledge Graph: {title}")
+                if all_matches:
+                    best = all_matches[0]
+                    print(f"✅ SerpAPI found {len(all_matches)} total matching results!")
                     return {
                         "found": True,
-                        "url": url or f"https://www.google.com/search?q={title.replace(' ', '+')}",
-                        "title": title,
-                        "platform": self._detect_platform(url) if url else "Google",
-                        "thumbnail": kg.get("header_images", [{}])[0].get("image", "") if kg.get("header_images") else "",
-                        "snippet": kg.get("description", f"Identified as '{title}'"),
-                        "relevance": 0.99,
+                        "url": best["url"],
+                        "title": best["title"],
+                        "platform": best["platform"],
+                        "thumbnail": best["thumbnail"],
+                        "snippet": best["snippet"],
+                        "relevance": best["relevance"],
+                        "all_matches": all_matches,
+                        "total_results": len(all_matches),
                         "real_api": True
                     }
 

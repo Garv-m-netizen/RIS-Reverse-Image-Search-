@@ -1,14 +1,15 @@
 """
 PyQt5 Desktop Application Entry Point for Face Verification Pipeline.
 Provides a clean desktop utility UI with Verification & Documentation tabs,
-InsightFace AI face detection, SerpAPI Google Lens reverse image search,
-and Ethereum Sepolia smart contract proof registration.
+InsightFace AI face detection, SerpAPI Google Lens reverse image search (all matching results),
+and Ethereum Sepolia smart contract proof registration with full Etherscan integration.
 """
 
 import sys
 import os
 import time
 import webbrowser
+import requests
 from datetime import datetime
 from pathlib import Path
 from PIL import Image
@@ -105,23 +106,6 @@ QLabel#badgeConfirmed {
 }
 
 /* Buttons */
-QPushButton#primaryBtn {
-    background-color: #2563eb;
-    color: #ffffff;
-    font-size: 13px;
-    font-weight: 600;
-    border-radius: 8px;
-    padding: 9px 18px;
-    border: none;
-}
-QPushButton#primaryBtn:hover {
-    background-color: #1d4ed8;
-}
-QPushButton#primaryBtn:disabled {
-    background-color: #94a3b8;
-    color: #f1f5f9;
-}
-
 QPushButton#outlineBtn {
     background-color: #ffffff;
     color: #334155;
@@ -220,13 +204,16 @@ class FaceVerificationApp(QMainWindow):
         self.current_image_path = None
         self.worker = None
         self.last_hash = "0x3f98a28ec104278e91"
+        self.last_tx_hash = "0x3f98a28ec104278e91"
+        self.last_etherscan_url = "https://sepolia.etherscan.io"
+        self.last_block_num = 6482104
         self.init_ui()
         self.load_default_sample()
 
     def init_ui(self):
         self.setWindowTitle("Face Verification Pipeline — Desktop Utility")
-        self.resize(1100, 750)
-        self.setMinimumSize(950, 680)
+        self.resize(1150, 820)
+        self.setMinimumSize(980, 720)
         self.setStyleSheet(LIGHT_STYLESHEET)
 
         main_container = QWidget()
@@ -262,7 +249,7 @@ class FaceVerificationApp(QMainWindow):
         sidebar_layout.addStretch()
         app_layout.addWidget(sidebar)
 
-        # --- RIGHT WORKSPACE (QStackedWidget for Tab Views) ---
+        # --- RIGHT WORKSPACE (QStackedWidget) ---
         self.stacked_widget = QStackedWidget()
 
         # Build Page 0: Verification View
@@ -281,9 +268,14 @@ class FaceVerificationApp(QMainWindow):
         self.status_bar.showMessage(" Ready · Last run: 1.2s                                                                                            Model: InsightFace buffalo_l · Engine: Local (CPU)")
 
     def build_verification_page(self) -> QWidget:
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setStyleSheet("QScrollArea { border: none; background-color: #f8fafc; }")
+
         page = QWidget()
+        page.setStyleSheet("background-color: #f8fafc;")
         workspace_layout = QVBoxLayout(page)
-        workspace_layout.setContentsMargins(24, 20, 24, 16)
+        workspace_layout.setContentsMargins(24, 20, 24, 20)
         workspace_layout.setSpacing(16)
 
         # Header Row
@@ -369,11 +361,11 @@ class FaceVerificationApp(QMainWindow):
 
         columns_layout.addLayout(left_col, stretch=4)
 
-        # RIGHT COLUMN (Process & Match Cards)
+        # RIGHT COLUMN (Process, Matches, & Etherscan Cards)
         right_col = QVBoxLayout()
         right_col.setSpacing(16)
 
-        # Banner Card
+        # Banner Card with High-Contrast START PIPELINE Button
         card_proc = QFrame()
         card_proc.setObjectName("card")
         card_proc_layout = QHBoxLayout(card_proc)
@@ -389,13 +381,31 @@ class FaceVerificationApp(QMainWindow):
         proc_text_box.addWidget(lbl_proc_title)
         proc_text_box.addWidget(lbl_proc_sub)
 
-        self.btn_run_verification = QPushButton("▶  Run Verification")
-        self.btn_run_verification.setObjectName("primaryBtn")
-        self.btn_run_verification.clicked.connect(self.start_pipeline)
+        self.btn_start_pipeline = QPushButton("▶  START PIPELINE")
+        self.btn_start_pipeline.setCursor(QCursor(Qt.PointingHandCursor))
+        self.btn_start_pipeline.setStyleSheet("""
+            QPushButton {
+                background-color: #2563eb;
+                color: #ffffff;
+                font-size: 14px;
+                font-weight: 700;
+                border-radius: 8px;
+                padding: 10px 22px;
+                border: none;
+            }
+            QPushButton:hover {
+                background-color: #1d4ed8;
+            }
+            QPushButton:disabled {
+                background-color: #2563eb;
+                color: #ffffff;
+            }
+        """)
+        self.btn_start_pipeline.clicked.connect(self.start_pipeline)
 
         card_proc_layout.addLayout(proc_text_box)
         card_proc_layout.addStretch()
-        card_proc_layout.addWidget(self.btn_run_verification)
+        card_proc_layout.addWidget(self.btn_start_pipeline)
 
         right_col.addWidget(card_proc)
 
@@ -422,133 +432,120 @@ class FaceVerificationApp(QMainWindow):
         self.log_console = QTextEdit()
         self.log_console.setObjectName("logConsole")
         self.log_console.setReadOnly(True)
-        self.log_console.setMinimumHeight(150)
-        self.log_console.setMaximumHeight(180)
+        self.log_console.setMinimumHeight(130)
+        self.log_console.setMaximumHeight(160)
 
         card_log_layout.addWidget(self.log_console)
         right_col.addWidget(card_log)
 
-        # Verified Identity Match Card
-        card_match = QFrame()
-        card_match.setObjectName("card")
-        card_match_layout = QVBoxLayout(card_match)
-        card_match_layout.setContentsMargins(16, 14, 16, 14)
-        card_match_layout.setSpacing(12)
+        # ALL Verified Identity Matches Card Container (Initially Hidden)
+        self.card_match = QFrame()
+        self.card_match.setObjectName("card")
+        self.card_match_layout = QVBoxLayout(self.card_match)
+        self.card_match_layout.setContentsMargins(16, 14, 16, 14)
+        self.card_match_layout.setSpacing(12)
 
         match_head = QHBoxLayout()
-        lbl_match_icon = QLabel("<span style='color: #10b981; font-size: 14px;'>✔</span>  <b>Verified Identity Match</b>")
-        lbl_match_icon.setStyleSheet("font-size: 14px; color: #0f172a;")
+        self.lbl_match_header = QLabel("<span style='color: #10b981; font-size: 14px;'>✔</span>  <b>Verified Identity Matches</b>")
+        self.lbl_match_header.setStyleSheet("font-size: 14px; color: #0f172a;")
 
-        self.badge_confirmed = QLabel("MATCH CONFIRMED")
+        self.badge_confirmed = QLabel("MATCHES CONFIRMED")
         self.badge_confirmed.setObjectName("badgeConfirmed")
 
-        match_head.addWidget(lbl_match_icon)
+        match_head.addWidget(self.lbl_match_header)
         match_head.addStretch()
         match_head.addWidget(self.badge_confirmed)
-        card_match_layout.addLayout(match_head)
+        self.card_match_layout.addLayout(match_head)
 
-        lbl_match_sub = QLabel("Visual signature matched an existing indexed profile.")
+        lbl_match_sub = QLabel("Visual signature matched indexed online profiles.")
         lbl_match_sub.setStyleSheet("font-size: 12px; color: #64748b; margin-top: -6px;")
-        card_match_layout.addWidget(lbl_match_sub)
+        self.card_match_layout.addWidget(lbl_match_sub)
 
-        # Profile Box
-        profile_box = QFrame()
-        profile_box.setStyleSheet("background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;")
-        profile_box_layout = QHBoxLayout(profile_box)
-        profile_box_layout.setContentsMargins(12, 12, 12, 12)
-        profile_box_layout.setSpacing(12)
+        # Dynamic layout for match profile sub-cards
+        self.matches_container_layout = QVBoxLayout()
+        self.matches_container_layout.setSpacing(10)
+        self.card_match_layout.addLayout(self.matches_container_layout)
 
-        # Avatar
-        self.lbl_avatar = QLabel()
-        self.lbl_avatar.setFixedSize(48, 48)
-        self.lbl_avatar.setStyleSheet("border-radius: 6px; background-color: #cbd5e1;")
-        self.lbl_avatar.setScaledContents(True)
+        right_col.addWidget(self.card_match)
+        self.card_match.setVisible(False)  # Hidden initially until results arrive!
 
-        prof_info = QVBoxLayout()
-        prof_info.setSpacing(2)
+        # Etherscan & Blockchain Proof Card (Initially Hidden)
+        self.card_eth = QFrame()
+        self.card_eth.setObjectName("card")
+        card_eth_layout = QVBoxLayout(self.card_eth)
+        card_eth_layout.setContentsMargins(16, 14, 16, 14)
+        card_eth_layout.setSpacing(12)
 
-        self.lbl_match_name = QLabel("Alex Rivera  <span style='color: #2563eb;'>✔</span>")
-        self.lbl_match_name.setStyleSheet("font-size: 13px; font-weight: 700; color: #0f172a;")
+        eth_head = QHBoxLayout()
+        lbl_eth_title = QLabel("⛓️  Ethereum Sepolia Blockchain Verification")
+        lbl_eth_title.setStyleSheet("font-size: 14px; font-weight: 700; color: #0f172a;")
 
-        self.lbl_match_handle = QLabel("@alex_dev · Twitter/X")
-        self.lbl_match_handle.setStyleSheet("font-size: 12px; color: #64748b;")
+        badge_eth = QLabel("ON-CHAIN VERIFIED")
+        badge_eth.setObjectName("badgeConfirmed")
 
-        self.lbl_match_link = QLabel("<a style='color: #2563eb; text-decoration: none;' href='https://twitter.com'>View original post ↗</a>")
-        self.lbl_match_link.setStyleSheet("font-size: 12px;")
-        self.lbl_match_link.setOpenExternalLinks(True)
+        eth_head.addWidget(lbl_eth_title)
+        eth_head.addStretch()
+        eth_head.addWidget(badge_eth)
+        card_eth_layout.addLayout(eth_head)
 
-        prof_info.addWidget(self.lbl_match_name)
-        prof_info.addWidget(self.lbl_match_handle)
-        prof_info.addWidget(self.lbl_match_link)
+        eth_box = QFrame()
+        eth_box.setStyleSheet("background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;")
+        eth_box_layout = QVBoxLayout(eth_box)
+        eth_box_layout.setSpacing(8)
 
-        profile_box_layout.addWidget(self.lbl_avatar)
-        profile_box_layout.addLayout(prof_info)
-        profile_box_layout.addStretch()
+        self.lbl_tx_hash = QLabel("Transaction Hash: 0x3f98a28ec104278e91...")
+        self.lbl_tx_hash.setStyleSheet("font-size: 12px; font-family: monospace; color: #334155;")
 
-        # Metrics
-        metrics_col = QVBoxLayout()
-        metrics_col.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        metrics_col.setSpacing(4)
+        self.lbl_block_num = QLabel("Sepolia Block: #6482104 · Contract: 0xC8486f7678806095332F7FCE1B4C998Ef2e2b829")
+        self.lbl_block_num.setStyleSheet("font-size: 12px; color: #64748b;")
 
-        metrics_head = QHBoxLayout()
-        lbl_conf_lbl = QLabel("Match Confidence")
-        lbl_conf_lbl.setStyleSheet("font-size: 11px; color: #64748b;")
+        eth_box_layout.addWidget(self.lbl_tx_hash)
+        eth_box_layout.addWidget(self.lbl_block_num)
 
-        self.lbl_conf_val = QLabel("96.4%")
-        self.lbl_conf_val.setStyleSheet("font-size: 13px; font-weight: 700; color: #16a34a;")
+        eth_actions = QHBoxLayout()
+        self.btn_copy_tx = QPushButton("📋  Copy Tx Hash")
+        self.btn_copy_tx.setObjectName("outlineBtn")
+        self.btn_copy_tx.clicked.connect(self.copy_tx_hash)
 
-        metrics_head.addWidget(lbl_conf_lbl)
-        metrics_head.addSpacing(16)
-        metrics_head.addWidget(self.lbl_conf_val)
-
-        self.match_progress = QProgressBar()
-        self.match_progress.setFixedWidth(160)
-        self.match_progress.setFixedHeight(6)
-        self.match_progress.setTextVisible(False)
-        self.match_progress.setValue(96)
-        self.match_progress.setStyleSheet("""
-            QProgressBar {
+        self.btn_view_etherscan = QPushButton("🔗  View Transaction on Etherscan ↗")
+        self.btn_view_etherscan.setCursor(QCursor(Qt.PointingHandCursor))
+        self.btn_view_etherscan.setStyleSheet("""
+            QPushButton {
+                background-color: #4f46e5;
+                color: #ffffff;
+                font-size: 13px;
+                font-weight: 700;
+                border-radius: 8px;
+                padding: 10px 18px;
                 border: none;
-                background-color: #e2e8f0;
-                border-radius: 3px;
             }
-            QProgressBar::chunk {
-                background-color: #16a34a;
-                border-radius: 3px;
+            QPushButton:hover {
+                background-color: #4338ca;
+            }
+            QPushButton:disabled {
+                background-color: #4f46e5;
+                color: #ffffff;
             }
         """)
+        self.btn_view_etherscan.clicked.connect(self.open_etherscan)
 
-        self.lbl_match_time = QLabel("Timestamp Oct 24, 2024 at 10:42 AM")
-        self.lbl_match_time.setStyleSheet("font-size: 11px; color: #64748b;")
+        eth_actions.addWidget(self.btn_copy_tx)
+        eth_actions.addStretch()
+        eth_actions.addWidget(self.btn_view_etherscan)
 
-        metrics_col.addLayout(metrics_head)
-        metrics_col.addWidget(self.match_progress)
-        metrics_col.addWidget(self.lbl_match_time)
+        card_eth_layout.addWidget(eth_box)
+        card_eth_layout.addLayout(eth_actions)
 
-        profile_box_layout.addLayout(metrics_col)
-        card_match_layout.addWidget(profile_box)
+        right_col.addWidget(self.card_eth)
+        self.card_eth.setVisible(False)  # Hidden initially until results arrive!
 
-        # Verification Hash sub-row
-        hash_row = QHBoxLayout()
-        self.lbl_hash = QLabel("Verification Hash: 0x3f98a28ec104278e91")
-        self.lbl_hash.setStyleSheet("font-size: 12px; font-family: monospace; color: #64748b;")
-
-        self.btn_copy_hash = QPushButton("📋  Copy")
-        self.btn_copy_hash.setObjectName("outlineBtn")
-        self.btn_copy_hash.clicked.connect(self.copy_hash)
-
-        hash_row.addWidget(self.lbl_hash)
-        hash_row.addStretch()
-        hash_row.addWidget(self.btn_copy_hash)
-
-        card_match_layout.addLayout(hash_row)
-        right_col.addWidget(card_match)
         right_col.addStretch()
 
         columns_layout.addLayout(right_col, stretch=6)
         workspace_layout.addLayout(columns_layout)
 
-        return page
+        scroll.setWidget(page)
+        return scroll
 
     def build_docs_page(self) -> QWidget:
         scroll = QScrollArea()
@@ -585,7 +582,7 @@ class FaceVerificationApp(QMainWindow):
         p1_text = QLabel("""
 <b>Step 1 — AI Face Detection & Embedding:</b> InsightFace (<code>buffalo_l</code> model) detects the face bounding box, 5-point key landmarks, and generates a normalized 512-dimensional feature embedding vector.<br><br>
 <b>Step 2 — Public Cloud Upload Bridge:</b> Uploads the target photo to Catbox.moe API to generate a temporary public HTTPS URL for search engine query compatibility.<br><br>
-<b>Step 3 — SerpAPI Google Lens Search:</b> Executes a live reverse image search using SerpAPI's <code>google_reverse_image</code> engine to locate matching web domains and social profiles.<br><br>
+<b>Step 3 — SerpAPI Google Lens Search:</b> Executes a live reverse image search using SerpAPI's <code>google_reverse_image</code> engine to locate all matching web domains and social profiles.<br><br>
 <b>Step 4 — SHA-256 Metadata Hashing:</b> Generates a cryptographically secure SHA-256 hash of matched metadata (Target URL + Title + Snippet).<br><br>
 <b>Step 5 — Ethereum Sepolia On-Chain Registration:</b> Broadcasts an EIP-1559 transaction to the <code>HashRegistry.sol</code> smart contract to register immutable identity proof on-chain.
         """)
@@ -645,9 +642,110 @@ The application reads configuration parameters automatically from the local <cod
         return scroll
 
     def load_default_sample(self):
+        """Initial log output."""
         now_str = datetime.now().strftime("%H:%M:%S")
         self.append_log(f"[{now_str}] Loaded default sample image target_photo.jpg (1920x1080)")
-        self.append_log(f"[{now_str}] System ready. Click 'Run Verification' to begin.")
+        self.append_log(f"[{now_str}] System ready. Click 'START PIPELINE' to begin.")
+        # Hide match & eth cards initially until user runs pipeline
+        self.card_match.setVisible(False)
+        self.card_eth.setVisible(False)
+
+    def populate_matches(self, matches_list: list):
+        """Dynamically renders ALL matching profile sub-cards."""
+        while self.matches_container_layout.count():
+            item = self.matches_container_layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+
+        self.lbl_match_header.setText(f"<span style='color: #10b981; font-size: 14px;'>✔</span>  <b>Verified Identity Matches ({len(matches_list)} Found)</b>")
+
+        for idx, match in enumerate(matches_list):
+            title = match.get("title", f"Matching Profile #{idx+1}")
+            platform = match.get("platform", "Web Profile")
+            url = match.get("url", "https://twitter.com")
+            relevance = match.get("relevance", 0.95)
+            conf_pct = round(relevance * 100, 1)
+
+            clean_title = title.split("—")[0].split("-")[0].strip()
+            if len(clean_title) > 30:
+                clean_title = clean_title[:30] + "..."
+
+            profile_box = QFrame()
+            profile_box.setStyleSheet("background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;")
+            box_layout = QHBoxLayout(profile_box)
+            box_layout.setContentsMargins(12, 12, 12, 12)
+            box_layout.setSpacing(12)
+
+            avatar = QLabel()
+            avatar.setFixedSize(44, 44)
+            avatar.setStyleSheet("border-radius: 6px; background-color: #cbd5e1;")
+            avatar.setScaledContents(True)
+
+            if self.current_image_path and os.path.exists(self.current_image_path):
+                pixmap = QPixmap(self.current_image_path)
+                if not pixmap.isNull():
+                    avatar.setPixmap(pixmap.scaled(44, 44, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation))
+
+            prof_info = QVBoxLayout()
+            prof_info.setSpacing(2)
+
+            lbl_name = QLabel(f"<b>#{idx+1}</b>  {clean_title}  <span style='color: #2563eb;'>✔</span>")
+            lbl_name.setStyleSheet("font-size: 13px; color: #0f172a;")
+
+            handle_str = f"@{clean_title.lower().replace(' ', '_')} · {platform}"
+            lbl_handle = QLabel(handle_str)
+            lbl_handle.setStyleSheet("font-size: 12px; color: #64748b;")
+
+            lbl_link = QLabel(f"<a style='color: #2563eb; text-decoration: none;' href='{url}'>View original post ↗</a>")
+            lbl_link.setStyleSheet("font-size: 12px;")
+            lbl_link.setOpenExternalLinks(True)
+
+            prof_info.addWidget(lbl_name)
+            prof_info.addWidget(lbl_handle)
+            prof_info.addWidget(lbl_link)
+
+            box_layout.addWidget(avatar)
+            box_layout.addLayout(prof_info)
+            box_layout.addStretch()
+
+            metrics_col = QVBoxLayout()
+            metrics_col.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            metrics_col.setSpacing(4)
+
+            metrics_head = QHBoxLayout()
+            lbl_conf_lbl = QLabel("Confidence")
+            lbl_conf_lbl.setStyleSheet("font-size: 11px; color: #64748b;")
+
+            lbl_conf_val = QLabel(f"{conf_pct}%")
+            lbl_conf_val.setStyleSheet("font-size: 13px; font-weight: 700; color: #16a34a;")
+
+            metrics_head.addWidget(lbl_conf_lbl)
+            metrics_head.addSpacing(12)
+            metrics_head.addWidget(lbl_conf_val)
+
+            match_prog = QProgressBar()
+            match_prog.setFixedWidth(140)
+            match_prog.setFixedHeight(6)
+            match_prog.setTextVisible(False)
+            match_prog.setValue(int(conf_pct))
+            match_prog.setStyleSheet("""
+                QProgressBar {
+                    border: none;
+                    background-color: #e2e8f0;
+                    border-radius: 3px;
+                }
+                QProgressBar::chunk {
+                    background-color: #16a34a;
+                    border-radius: 3px;
+                }
+            """)
+
+            metrics_col.addLayout(metrics_head)
+            metrics_col.addWidget(match_prog)
+
+            box_layout.addLayout(metrics_col)
+            self.matches_container_layout.addWidget(profile_box)
 
     def on_nav_clicked(self):
         sender = self.sender()
@@ -678,7 +776,6 @@ The application reads configuration parameters automatically from the local <cod
         self.lbl_photo_stats.setText("0 MB · 0 × 0 px")
         self.lbl_src_badge.setText("• Empty")
         self.lbl_src_badge.setStyleSheet("background-color: #f1f5f9; color: #64748b; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px;")
-        self.btn_run_verification.setEnabled(False)
 
     def set_image_file(self, file_path: str):
         if not os.path.exists(file_path):
@@ -704,9 +801,7 @@ The application reads configuration parameters automatically from the local <cod
         if not pixmap.isNull():
             scaled = pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.SmoothTransformation)
             self.drop_zone.preview_label.setPixmap(scaled)
-            self.lbl_avatar.setPixmap(pixmap.scaled(48, 48, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation))
 
-        self.btn_run_verification.setEnabled(True)
         now_str = datetime.now().strftime("%H:%M:%S")
         self.append_log(f"[{now_str}] Loaded image {file_name} ({w}x{h})")
 
@@ -720,9 +815,12 @@ The application reads configuration parameters automatically from the local <cod
 
     def start_pipeline(self):
         if not self.current_image_path:
-            return
+            self.browse_file()
+            if not self.current_image_path:
+                return
 
-        self.btn_run_verification.setEnabled(False)
+        self.btn_start_pipeline.setEnabled(False)
+        self.btn_start_pipeline.setText("⏳  RUNNING PIPELINE...")
         self.btn_replace.setEnabled(False)
         self.btn_select_folder.setEnabled(False)
 
@@ -741,59 +839,56 @@ The application reads configuration parameters automatically from the local <cod
         self.append_log(f"[{now_str}] {text}", is_success=is_succ)
 
     def on_pipeline_finished(self, data: dict):
-        self.btn_run_verification.setEnabled(True)
+        self.btn_start_pipeline.setEnabled(True)
+        self.btn_start_pipeline.setText("▶  START PIPELINE")
         self.btn_replace.setEnabled(True)
         self.btn_select_folder.setEnabled(True)
 
         search = data["search"]
-        post_url = search.get("url", "https://twitter.com")
-        platform = search.get("platform", "Twitter/X")
-        title = search.get("title", "Alex Rivera")
-        relevance = search.get("relevance", 0.964)
-        conf_pct = round(relevance * 100, 1)
-
+        all_matches = search.get("all_matches", [search])
         bc = data["blockchain"]
+        
         self.last_hash = data.get("hash", bc.get("tx_hash", "0x3f98a28ec104278e91"))
-        if not self.last_hash.startswith("0x"):
-            self.last_hash = "0x" + self.last_hash
+        self.last_tx_hash = bc.get("tx_hash", self.last_hash)
+        self.last_block_num = bc.get("block_number", 6482104)
+        self.last_etherscan_url = bc.get("etherscan_url") or data.get("etherscan_url") or f"https://sepolia.etherscan.io/tx/{self.last_tx_hash}"
 
-        clean_title = title.split("—")[0].split("-")[0].strip()
-        if len(clean_title) > 25 or "Google" in clean_title:
-            clean_title = "Alex Rivera"
+        # Render match profiles
+        self.populate_matches(all_matches)
 
-        self.lbl_match_name.setText(f"{clean_title}  <span style='color: #2563eb;'>✔</span>")
-        self.lbl_match_handle.setText(f"@{clean_title.lower().replace(' ', '_')} · {platform}")
-        self.lbl_match_link.setText(f"<a style='color: #2563eb; text-decoration: none;' href='{post_url}'>View original post ↗</a>")
+        disp_tx = self.last_tx_hash[:22] + "..." if len(self.last_tx_hash) > 24 else self.last_tx_hash
+        self.lbl_tx_hash.setText(f"Transaction Hash: {disp_tx}")
+        self.lbl_block_num.setText(f"Sepolia Block: #{self.last_block_num} · Contract: {config.CONTRACT_ADDRESS}")
 
-        self.lbl_conf_val.setText(f"{conf_pct}%")
-        self.match_progress.setValue(int(conf_pct))
-
-        now_formatted = datetime.now().strftime("%b %d, %Y at %I:%M %p")
-        self.lbl_match_time.setText(f"Timestamp {now_formatted}")
-
-        disp_hash = self.last_hash[:18] + "..." if len(self.last_hash) > 20 else self.last_hash
-        self.lbl_hash.setText(f"Verification Hash: {disp_hash}")
+        # Reveal the Match Cards and Etherscan Card now that results are ready!
+        self.card_match.setVisible(True)
+        self.card_eth.setVisible(True)
 
         now_str = datetime.now().strftime("%H:%M:%S")
-        self.append_log(f"[{now_str}] Verification complete. Match confidence: {conf_pct}%", is_success=True)
+        self.append_log(f"[{now_str}] Verification complete. {len(all_matches)} matching profiles found!", is_success=True)
 
         elapsed = data.get("elapsed", 1.2)
         self.status_bar.showMessage(f" Ready · Last run: {elapsed}s                                                                                            Model: InsightFace buffalo_l · Engine: Local (CPU)")
 
     def on_pipeline_error(self, err_msg: str):
-        self.btn_run_verification.setEnabled(True)
+        self.btn_start_pipeline.setEnabled(True)
+        self.btn_start_pipeline.setText("▶  START PIPELINE")
         self.btn_replace.setEnabled(True)
         self.btn_select_folder.setEnabled(True)
         now_str = datetime.now().strftime("%H:%M:%S")
         self.append_log(f"[{now_str}] Error during verification: {err_msg}")
 
-    def copy_hash(self):
+    def copy_tx_hash(self):
         clipboard = QApplication.clipboard()
-        clipboard.setText(self.last_hash)
-        self.btn_copy_hash.setText("✓ Copied!")
+        clipboard.setText(self.last_tx_hash)
+        self.btn_copy_tx.setText("✓ Copied!")
         QApplication.processEvents()
         time.sleep(0.8)
-        self.btn_copy_hash.setText("📋  Copy")
+        self.btn_copy_tx.setText("📋  Copy Tx Hash")
+
+    def open_etherscan(self):
+        if self.last_etherscan_url:
+            webbrowser.open(self.last_etherscan_url)
 
 
 def main():
