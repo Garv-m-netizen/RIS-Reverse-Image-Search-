@@ -145,21 +145,6 @@ cp .env.example .env
 python main.py
 ```
 
----
-
-##  Screen Recording Presentation Script (45 Seconds)
-
-| Timestamp | Action | Description |
-|---|---|---|
-| `0:00 - 0:05` | Launch application (`python main.py`) | "Welcome to the Face Verification Pipeline Desktop Utility." |
-| `0:05 - 0:12` | Click **Select Folder** or **Replace** image | "We load a target portrait photo. The app updates image dimensions, file size, and parameters." |
-| `0:12 - 0:22` | Adjust threshold slider & click **Run Verification** | "Adjust confidence threshold and click Run Verification to trigger InsightFace AI face detection." |
-| `0:22 - 0:32` | Watch live logs & reverse search | "The app uploads to Catbox and queries SerpAPI Google Lens for matching social profiles." |
-| `0:32 - 0:40` | View identity match & SHA-256 hash | "A match is confirmed with 96.4% confidence and the payload SHA-256 hash is recorded on Sepolia." |
-| `0:40 - 0:45` | Click **Copy** hash & view contract link | "Verification complete! Click Copy Hash to verify proof directly on Etherscan." |
-
----
-
 ##  Core Technologies & Specifications
 
 - **PyQt5 Desktop Framework**: Native desktop interface with responsive sidebar and custom Qt stylesheets.
