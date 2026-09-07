@@ -1,73 +1,85 @@
-#  Face Verification Pipeline (AI & Ethereum Sepolia Blockchain)
+# 🏆 Face Verification Pipeline — AI & Sepolia Blockchain Desktop Utility
 
-A complete, production-grade desktop application built with **PyQt5** that takes a human face image, performs **AI face detection and 512-dim embedding extraction via InsightFace (`buffalo_l`)**, conducts a **reverse image web search via Bright Data API**, and registers an immutable, tamper-proof record on the **Ethereum Sepolia Testnet** using a custom Solidity smart contract (`HashRegistry.sol`).
+A modern, production-grade desktop application built with **PyQt5** featuring a clean macOS-style UI. It performs **AI face detection and 512-dim embedding extraction via InsightFace (`buffalo_l`)**, conducts **real reverse image web search via SerpAPI (Google Lens) & Catbox.moe**, and registers an immutable, tamper-proof audit record on the **Ethereum Sepolia Testnet** using a custom Solidity smart contract (`HashRegistry.sol`).
 
 ---
 
-##  Project Architecture
+## 🎨 UI & Features Overview
+
+- **macOS Desktop Utility Interface**: Modern card-based layout, sidebar navigation, confidence slider, clear execution logs, and identity match visualization.
+- **AI Face Feature Extraction**: InsightFace `buffalo_l` model generates 512-dimensional facial embeddings and 5-point facial landmark arrays with OpenCV fallback support.
+- **Real Reverse Image Search**: Automated catbox.moe hosting upload + SerpAPI Google Lens integration to find public profiles and matching web domains.
+- **Ethereum Sepolia Proof of Identity**: Computes SHA-256 payload hashes and commits on-chain transactions via EIP-1559 gas estimation on Ethereum Sepolia Testnet.
+- **Interactive Verification**: One-click hash copying, live transaction tracking, and direct Etherscan proof verification links.
+
+---
+
+## 📐 Project Architecture
 
 ```
 [ User Input Image (JPG/PNG) ]
              │
              ▼
-[ 1. InsightFace AI (buffalo_l) ]  ➜ Extract face box & 512-dim embedding vector
+[ 1. InsightFace AI (buffalo_l) ]  ➜ Detect face bounding box, 5-point landmarks & 512-dim vector
              │
              ▼
-[ 2. Bright Data Reverse Search ]  ➜ Query web for matching social media post (X, IG, LinkedIn)
+[ 2. Public Cloud Hosting ]        ➜ Temporary upload to catbox.moe for public HTTPS URL
              │
              ▼
-[ 3. SHA-256 Hashing ]             ➜ Compute SHA-256 hash of (URL + Title + Snippet)
+[ 3. SerpAPI (Google Lens) ]       ➜ Perform real reverse image search for matching social profiles
              │
              ▼
-[ 4. Ethereum Sepolia Blockchain ]  ➜ Submit `storeHash(bytes32)` transaction to HashRegistry contract
+[ 4. SHA-256 Payload Hashing ]     ➜ Compute SHA-256 hash of matched metadata (URL + Title + Snippet)
              │
              ▼
-[ 5. PyQt5 Desktop GUI ]            ➜ Display status logs, progress bar, & Etherscan proof link
+[ 5. Ethereum Sepolia Blockchain ]  ➜ Broadcast `storeHash(bytes32)` transaction to smart contract
+             │
+             ▼
+[ 6. PyQt5 Desktop Utility ]        ➜ Render live status logs, confidence bar & Etherscan proof
 ```
 
 ---
 
-##  Repository Structure
+## 📁 Repository Structure
 
 ```
 face-verification-pipeline/
-├── main.py              # PyQt5 GUI Application entry point
-├── pipeline.py          # Asynchronous QThread pipeline (InsightFace + Bright Data + Web3)
-├── blockchain.py        # Web3.py smart contract interaction & transaction signing
-├── config.py            # Environment configuration management & diagnostics
-├── hash_registry.sol    # Solidity smart contract for Sepolia testnet
+├── main.py              # PyQt5 Desktop Application (macOS-style UI layout)
+├── pipeline.py          # Asynchronous QThread pipeline (InsightFace + SerpAPI + Web3)
+├── blockchain.py        # Web3.py smart contract integration & Sepolia EIP-1559 tx signing
+├── config.py            # Environment variable loader & diagnostic checker
+├── hash_registry.sol    # Solidity smart contract (`HashRegistry`)
 ├── contract_abi.json    # Compiled smart contract ABI
-├── requirements.txt     # Python package dependencies
-├── .env.example         # Template for required environment variables
-└── README.md            # Complete project documentation & setup guide
+├── deploy.py            # Automatic smart contract deployment script
+├── requirements.txt     # Python dependencies
+├── .env.example         # Template for environment configuration
+└── README.md            # Project documentation
 ```
 
 ---
 
-##  STEP-BY-STEP GUIDE: How to Get All Required APIs & Credentials for Real Test Execution
+## 🔑 STEP-BY-STEP SETUP GUIDE: How to Get All Required APIs
 
-To execute live web searches and produce real Ethereum Sepolia transactions visible on Etherscan, follow these 4 straightforward steps:
+Follow these simple steps to obtain your API keys and testnet ETH:
 
-### STEP 1: Get Bright Data API Token
-1. Go to [Bright Data Signup / Control Panel](https://brightdata.com/).
-2. Sign in or create a free account (includes free starter credits).
-3. Navigate to **Account Settings** -> **API Tokens** (or **Data Collector API**).
-4. Click **Generate Token** and copy your API Token.
-5. In your `.env` file, set:
+### STEP 1: Get SerpAPI Key (Free 100 Searches/Month)
+1. Register at [SerpAPI Signup](https://serpapi.com/users/sign_up).
+2. Go to your [SerpAPI Dashboard](https://serpapi.com/dashboard).
+3. Copy your **API Key**.
+4. Add to `.env`:
    ```env
-   BRIGHT_DATA_API_TOKEN=your_copied_bright_data_token
+   SERPAPI_KEY=your_serpapi_api_key_here
    ```
 
 ---
 
-### STEP 2: Get Sepolia RPC URL (Infura or Alchemy)
-1. Go to [Infura.io](https://infura.io/) (or [Alchemy.com](https://alchemy.com/)).
-2. Create a free account and click **Create New Key** / **Create App**.
-3. Select **Ethereum** network and choose **Sepolia Testnet**.
-4. Copy the **HTTPS Endpoint URL** (e.g. `https://sepolia.infura.io/v3/YOUR_PROJECT_ID`).
-5. In your `.env` file, set:
+### STEP 2: Get Sepolia RPC URL (Alchemy or Infura)
+1. Register at [Alchemy.com](https://alchemy.com/).
+2. Create an App for **Ethereum** on the **Sepolia Testnet**.
+3. Copy your **HTTPS RPC Endpoint URL**.
+4. Add to `.env`:
    ```env
-   SEPOLIA_PROVIDER_URL=https://sepolia.infura.io/v3/YOUR_PROJECT_ID
+   SEPOLIA_PROVIDER_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_API_KEY
    ```
 
 ---
@@ -75,14 +87,12 @@ To execute live web searches and produce real Ethereum Sepolia transactions visi
 ### STEP 3: Create a Sepolia Wallet & Get Free Testnet ETH
 1. Install [MetaMask Browser Extension](https://metamask.io/).
 2. Create or select a dedicated **Testnet Wallet**.
-3. In MetaMask settings, enable **Show test networks** and select **Sepolia**.
-4. Copy your Public Wallet Address (e.g., `0x1234...5678`).
-5. Get free Sepolia Testnet ETH from any of these faucets:
+3. Switch network to **Sepolia**.
+4. Get free Sepolia ETH from faucets:
+   - [Alchemy Sepolia Faucet](https://sepoliafaucet.com/)
    - [Google Cloud Sepolia Faucet](https://cloud.google.com/application/button/faucet/ethereum/sepolia)
-   - [Alchemy Sepolia Faucet](https://sepoliapowfaucet.com/)
-   - [Chainlink Sepolia Faucet](https://faucets.chain.link/sepolia)
-6. Export your Private Key from MetaMask (*Account Details -> Show Private Key*).
-7. In your `.env` file, set:
+5. Export private key (*Account Details -> Show Private Key*).
+6. Add to `.env`:
    ```env
    WALLET_ADDRESS=0xYourPublicWalletAddress
    WALLET_PRIVATE_KEY=0xYourPrivateKey
@@ -90,28 +100,27 @@ To execute live web searches and produce real Ethereum Sepolia transactions visi
 
 ---
 
-### STEP 4: Deploy `hash_registry.sol` to Sepolia Testnet
-1. Open [Remix Ethereum IDE](https://remix.ethereum.org/).
-2. Create a new file named `HashRegistry.sol` and paste the contents from `hash_registry.sol` in this repository.
-3. On the left tab, select **Solidity Compiler**, choose version `0.8.20` or higher, and click **Compile HashRegistry.sol**.
-4. On the left tab, select **Deploy & Run Transactions**:
-   - Change **Environment** to **Injected Provider - MetaMask**.
-   - Ensure MetaMask is connected to the **Sepolia Testnet**.
-   - Click **Deploy** and confirm the transaction in MetaMask.
-5. Once deployed, copy the **Contract Address** under *Deployed Contracts* (e.g., `0x9876...4321`).
-6. In your `.env` file, set:
-   ```env
-   CONTRACT_ADDRESS=0xYourDeployedContractAddress
-   ```
+### STEP 4: Smart Contract Address
+The smart contract `HashRegistry.sol` is already compiled and deployed on Sepolia Testnet at:
+`0xC8486f7678806095332F7FCE1B4C998Ef2e2b829`
+
+Alternatively, deploy your own using `deploy.py`:
+```bash
+python deploy.py
+```
+Then add to `.env`:
+```env
+CONTRACT_ADDRESS=0xYourDeployedContractAddress
+```
 
 ---
 
-##  Installation & Running the Application
+## ⚙️ Installation & Execution
 
-### 1. Clone & Setup Virtual Environment
+### 1. Clone Repository & Setup Environment
 ```bash
-git clone https://github.com/your-username/face-verification-pipeline.git
-cd face-verification-pipeline
+git clone https://github.com/Garv-m-netizen/RIS-Reverse-Image-Search-.git
+cd RIS-Reverse-Image-Search-
 
 python -m venv venv
 # On Windows:
@@ -125,8 +134,8 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 3. Create `.env` File
-Copy `.env.example` to `.env` and fill in your keys obtained from the guide above:
+### 3. Create `.env` Configuration File
+Copy `.env.example` to `.env` and fill in your keys:
 ```bash
 cp .env.example .env
 ```
@@ -138,22 +147,22 @@ python main.py
 
 ---
 
-##  Screen Recording Presentation Script (45 Seconds)
+## 🎬 Screen Recording Presentation Script (45 Seconds)
 
-| Timestamp | Screen Action | Voiceover / Description |
+| Timestamp | Action | Description |
 |---|---|---|
-| `0:00 - 0:05` | Open `python main.py` | "Welcome to the Face Verification Pipeline desktop application." |
-| `0:05 - 0:10` | Drag & drop face photo into upload zone | "We drag and drop a face photo. The app previews the photo and enables the pipeline." |
-| `0:10 - 0:18` | Click **START PIPELINE** | "Clicking Start Pipeline runs InsightFace AI to detect and generate a 512-dim embedding." |
-| `0:18 - 0:28` | Live log shows Bright Data search | "Bright Data API triggers reverse image search and locates the matching social media post." |
-| `0:28 - 0:38` | Live log shows Sepolia transaction | "The post metadata is SHA-256 hashed and broadcasted to our HashRegistry smart contract on Sepolia." |
-| `0:38 - 0:45` | Click **View on Etherscan** | "Verification is complete! Clicking 'View on Etherscan' verifies the immutable record on-chain." |
+| `0:00 - 0:05` | Launch application (`python main.py`) | "Welcome to the Face Verification Pipeline Desktop Utility." |
+| `0:05 - 0:12` | Click **Select Folder** or **Replace** image | "We load a target portrait photo. The app updates image dimensions, file size, and parameters." |
+| `0:12 - 0:22` | Adjust threshold slider & click **Run Verification** | "Adjust confidence threshold and click Run Verification to trigger InsightFace AI face detection." |
+| `0:22 - 0:32` | Watch live logs & reverse search | "The app uploads to Catbox and queries SerpAPI Google Lens for matching social profiles." |
+| `0:32 - 0:40` | View identity match & SHA-256 hash | "A match is confirmed with 96.4% confidence and the payload SHA-256 hash is recorded on Sepolia." |
+| `0:40 - 0:45` | Click **Copy** hash & view contract link | "Verification complete! Click Copy Hash to verify proof directly on Etherscan." |
 
 ---
 
-## 🛡️ Technical Rationale & Specifications
+## 🛡️ Core Technologies & Specifications
 
-- **InsightFace (`buffalo_l`)**: Industry standard 512-dimensional facial feature extraction running offline.
-- **Bright Data Reverse Image API**: Reliable reverse search endpoint avoiding CAPTCHAs with fast JSON responses.
-- **Web3.py & Sepolia Testnet**: Real smart contract storage on an Ethereum testnet with public Etherscan links.
-- **PyQt5 GUI**: Threaded execution prevents UI freezes, featuring Catppuccin dark theme styling (#1e1e2e).
+- **PyQt5 Desktop Framework**: Native desktop interface with responsive sidebar and custom Qt stylesheets.
+- **InsightFace (`buffalo_l`)**: Deep learning facial recognition engine running locally on CPU/GPU.
+- **SerpAPI & Catbox.moe**: Structured reverse image lookup API with public image hosting bridge.
+- **Web3.py & Sepolia Testnet**: Real-time Ethereum EIP-1559 transaction broadcasting and verification.
