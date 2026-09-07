@@ -177,7 +177,7 @@ class DropZoneWidget(QFrame):
         self.preview_label = QLabel()
         self.preview_label.setAlignment(Qt.AlignCenter)
         self.preview_label.setStyleSheet("color: #94a3b8; font-size: 13px;")
-        self.preview_label.setText("📷 Drag & drop image here\nor click 'Replace' to browse")
+        self.preview_label.setText("Drag & drop image here\nor click 'Replace' to browse")
 
         layout.addWidget(self.preview_label)
 
@@ -265,7 +265,7 @@ class FaceVerificationApp(QMainWindow):
         # Bottom Status Bar
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
-        self.status_bar.showMessage(" Ready · Last run: 1.2s                                                                                            Model: InsightFace buffalo_l · Engine: Local (CPU)")
+        self.status_bar.showMessage("Ready · Last run: 1.2s                                                                                            Model: InsightFace buffalo_l · Engine: Local (CPU)")
 
     def build_verification_page(self) -> QWidget:
         scroll = QScrollArea()
@@ -316,7 +316,7 @@ class FaceVerificationApp(QMainWindow):
         lbl_src_title = QLabel("SOURCE IMAGE")
         lbl_src_title.setObjectName("cardTitle")
 
-        self.lbl_src_badge = QLabel("• Loaded")
+        self.lbl_src_badge = QLabel("Loaded")
         self.lbl_src_badge.setObjectName("badgeLoaded")
 
         src_head_layout.addWidget(lbl_src_title)
@@ -365,7 +365,7 @@ class FaceVerificationApp(QMainWindow):
         right_col = QVBoxLayout()
         right_col.setSpacing(16)
 
-        # Banner Card with High-Contrast START PIPELINE Button
+        # Banner Card with START PIPELINE Button
         card_proc = QFrame()
         card_proc.setObjectName("card")
         card_proc_layout = QHBoxLayout(card_proc)
@@ -381,7 +381,7 @@ class FaceVerificationApp(QMainWindow):
         proc_text_box.addWidget(lbl_proc_title)
         proc_text_box.addWidget(lbl_proc_sub)
 
-        self.btn_start_pipeline = QPushButton("▶  START PIPELINE")
+        self.btn_start_pipeline = QPushButton("START PIPELINE")
         self.btn_start_pipeline.setCursor(QCursor(Qt.PointingHandCursor))
         self.btn_start_pipeline.setStyleSheet("""
             QPushButton {
@@ -446,7 +446,7 @@ class FaceVerificationApp(QMainWindow):
         self.card_match_layout.setSpacing(12)
 
         match_head = QHBoxLayout()
-        self.lbl_match_header = QLabel("<span style='color: #10b981; font-size: 14px;'>✔</span>  <b>Verified Identity Matches</b>")
+        self.lbl_match_header = QLabel("<b>Verified Identity Matches</b>")
         self.lbl_match_header.setStyleSheet("font-size: 14px; color: #0f172a;")
 
         self.badge_confirmed = QLabel("MATCHES CONFIRMED")
@@ -477,7 +477,7 @@ class FaceVerificationApp(QMainWindow):
         card_eth_layout.setSpacing(12)
 
         eth_head = QHBoxLayout()
-        lbl_eth_title = QLabel("⛓️  Ethereum Sepolia Blockchain Verification")
+        lbl_eth_title = QLabel("Ethereum Sepolia Blockchain Verification")
         lbl_eth_title.setStyleSheet("font-size: 14px; font-weight: 700; color: #0f172a;")
 
         badge_eth = QLabel("ON-CHAIN VERIFIED")
@@ -503,11 +503,11 @@ class FaceVerificationApp(QMainWindow):
         eth_box_layout.addWidget(self.lbl_block_num)
 
         eth_actions = QHBoxLayout()
-        self.btn_copy_tx = QPushButton("📋  Copy Tx Hash")
+        self.btn_copy_tx = QPushButton("Copy Tx Hash")
         self.btn_copy_tx.setObjectName("outlineBtn")
         self.btn_copy_tx.clicked.connect(self.copy_tx_hash)
 
-        self.btn_view_etherscan = QPushButton("🔗  View Transaction on Etherscan ↗")
+        self.btn_view_etherscan = QPushButton("View Transaction on Etherscan")
         self.btn_view_etherscan.setCursor(QCursor(Qt.PointingHandCursor))
         self.btn_view_etherscan.setStyleSheet("""
             QPushButton {
@@ -658,7 +658,7 @@ The application reads configuration parameters automatically from the local <cod
             if widget:
                 widget.deleteLater()
 
-        self.lbl_match_header.setText(f"<span style='color: #10b981; font-size: 14px;'>✔</span>  <b>Verified Identity Matches ({len(matches_list)} Found)</b>")
+        self.lbl_match_header.setText(f"<b>Verified Identity Matches ({len(matches_list)} Found)</b>")
 
         for idx, match in enumerate(matches_list):
             title = match.get("title", f"Matching Profile #{idx+1}")
@@ -690,14 +690,14 @@ The application reads configuration parameters automatically from the local <cod
             prof_info = QVBoxLayout()
             prof_info.setSpacing(2)
 
-            lbl_name = QLabel(f"<b>#{idx+1}</b>  {clean_title}  <span style='color: #2563eb;'>✔</span>")
+            lbl_name = QLabel(f"<b>#{idx+1}</b>  {clean_title}")
             lbl_name.setStyleSheet("font-size: 13px; color: #0f172a;")
 
             handle_str = f"@{clean_title.lower().replace(' ', '_')} · {platform}"
             lbl_handle = QLabel(handle_str)
             lbl_handle.setStyleSheet("font-size: 12px; color: #64748b;")
 
-            lbl_link = QLabel(f"<a style='color: #2563eb; text-decoration: none;' href='{url}'>View original post ↗</a>")
+            lbl_link = QLabel(f"<a style='color: #2563eb; text-decoration: none;' href='{url}'>View original post</a>")
             lbl_link.setStyleSheet("font-size: 12px;")
             lbl_link.setOpenExternalLinks(True)
 
@@ -770,11 +770,11 @@ The application reads configuration parameters automatically from the local <cod
 
     def remove_image(self):
         self.current_image_path = None
-        self.drop_zone.preview_label.setText("📷 Drag & drop image here\nor click 'Replace' to browse")
+        self.drop_zone.preview_label.setText("Drag & drop image here\nor click 'Replace' to browse")
         self.drop_zone.preview_label.setPixmap(QPixmap())
         self.lbl_photo_name.setText("No Image Loaded")
         self.lbl_photo_stats.setText("0 MB · 0 × 0 px")
-        self.lbl_src_badge.setText("• Empty")
+        self.lbl_src_badge.setText("Empty")
         self.lbl_src_badge.setStyleSheet("background-color: #f1f5f9; color: #64748b; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px;")
 
     def set_image_file(self, file_path: str):
@@ -794,7 +794,7 @@ The application reads configuration parameters automatically from the local <cod
 
         self.lbl_photo_name.setText(file_name)
         self.lbl_photo_stats.setText(f"{size_mb} MB · {w} × {h} px")
-        self.lbl_src_badge.setText("• Loaded")
+        self.lbl_src_badge.setText("Loaded")
         self.lbl_src_badge.setStyleSheet("background-color: #dcfce7; color: #15803d; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px;")
 
         pixmap = QPixmap(file_path)
@@ -820,7 +820,7 @@ The application reads configuration parameters automatically from the local <cod
                 return
 
         self.btn_start_pipeline.setEnabled(False)
-        self.btn_start_pipeline.setText("⏳  RUNNING PIPELINE...")
+        self.btn_start_pipeline.setText("RUNNING PIPELINE...")
         self.btn_replace.setEnabled(False)
         self.btn_select_folder.setEnabled(False)
 
@@ -840,7 +840,7 @@ The application reads configuration parameters automatically from the local <cod
 
     def on_pipeline_finished(self, data: dict):
         self.btn_start_pipeline.setEnabled(True)
-        self.btn_start_pipeline.setText("▶  START PIPELINE")
+        self.btn_start_pipeline.setText("START PIPELINE")
         self.btn_replace.setEnabled(True)
         self.btn_select_folder.setEnabled(True)
 
@@ -868,11 +868,11 @@ The application reads configuration parameters automatically from the local <cod
         self.append_log(f"[{now_str}] Verification complete. {len(all_matches)} matching profiles found!", is_success=True)
 
         elapsed = data.get("elapsed", 1.2)
-        self.status_bar.showMessage(f" Ready · Last run: {elapsed}s                                                                                            Model: InsightFace buffalo_l · Engine: Local (CPU)")
+        self.status_bar.showMessage(f"Ready · Last run: {elapsed}s                                                                                            Model: InsightFace buffalo_l · Engine: Local (CPU)")
 
     def on_pipeline_error(self, err_msg: str):
         self.btn_start_pipeline.setEnabled(True)
-        self.btn_start_pipeline.setText("▶  START PIPELINE")
+        self.btn_start_pipeline.setText("START PIPELINE")
         self.btn_replace.setEnabled(True)
         self.btn_select_folder.setEnabled(True)
         now_str = datetime.now().strftime("%H:%M:%S")
@@ -881,10 +881,10 @@ The application reads configuration parameters automatically from the local <cod
     def copy_tx_hash(self):
         clipboard = QApplication.clipboard()
         clipboard.setText(self.last_tx_hash)
-        self.btn_copy_tx.setText("✓ Copied!")
+        self.btn_copy_tx.setText("Copied!")
         QApplication.processEvents()
         time.sleep(0.8)
-        self.btn_copy_tx.setText("📋  Copy Tx Hash")
+        self.btn_copy_tx.setText("Copy Tx Hash")
 
     def open_etherscan(self):
         if self.last_etherscan_url:
