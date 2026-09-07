@@ -1,0 +1,58 @@
+# ========================
+# SENSITIVE / SECRET FILES
+# ========================
+.env
+*.pem
+*.key
+
+# ========================
+# PYTHON
+# ========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# ========================
+# VIRTUAL ENVIRONMENT
+# ========================
+venv/
+.venv/
+env/
+
+# ========================
+# IDE / EDITOR
+# ========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ========================
+# INSIGHTFACE MODELS CACHE
+# ========================
+*.onnx
+
+# ========================
+# UPLOADED / TEMP IMAGES
+# ========================
+*.jpg
+*.jpeg
+*.png
+*.webp
+*.bmp
+*.gif
+
+# ========================
+# MISC
+# ========================
+*.log
+*.tmp
+.agents/
